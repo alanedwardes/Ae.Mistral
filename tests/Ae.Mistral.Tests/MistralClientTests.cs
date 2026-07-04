@@ -106,4 +106,21 @@ public class MistralClientTests
 
         Assert.Contains("\"stream\":false", handler.LastRequestBody);
     }
+
+    [Fact]
+    public async Task ListModelsAsync_DeserializesModelList()
+    {
+        const string json = "{\"object\":\"list\",\"data\":[{\"id\":\"mistral-small-latest\",\"object\":\"model\",\"created\":1234567890,\"owned_by\":\"mistralai\",\"capabilities\":{\"completion_chat\":true,\"completion_fim\":false,\"function_calling\":true,\"fine_tuning\":false,\"vision\":false}}]}";
+
+        using var httpClient = FakeHttpMessageHandler.WithJsonResponse(json).ToHttpClient();
+        using var client = new MistralClient("test-key", httpClient);
+
+        var models = await client.ListModelsAsync();
+
+        var model = Assert.Single(models);
+        Assert.Equal("mistral-small-latest", model.Id);
+        Assert.Equal("mistralai", model.OwnedBy);
+        Assert.True(model.Capabilities!.CompletionChat);
+        Assert.True(model.Capabilities!.FunctionCalling);
+    }
 }

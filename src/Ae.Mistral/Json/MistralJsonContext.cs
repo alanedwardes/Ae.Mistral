@@ -11,6 +11,7 @@ namespace Ae.Mistral.Json;
 [JsonSerializable(typeof(ChatCompletionChunk))]
 [JsonSerializable(typeof(IReadOnlyList<ContentChunk>))]
 [JsonSerializable(typeof(List<ContentChunk>))]
+[JsonSerializable(typeof(ModelList))]
 internal sealed partial class MistralJsonContext : JsonSerializerContext
 {
 }

@@ -63,6 +63,22 @@ public sealed class MistralClient : IDisposable
         }
     }
 
+    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync("models", cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            throw new MistralApiException($"Mistral API returned {(int)response.StatusCode} {response.StatusCode}: {body}");
+        }
+
+        var responseBody = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var modelList = await JsonSerializer.DeserializeAsync(responseBody, MistralJsonContext.Default.ModelList, cancellationToken).ConfigureAwait(false)
+            ?? throw new MistralApiException("Received an empty model list response.");
+        return modelList.Data;
+    }
+
     private async Task<HttpResponseMessage> SendAsync(ChatCompletionRequest request, CancellationToken cancellationToken)
     {
         using var content = JsonContent.Create(request, MistralJsonContext.Default.ChatCompletionRequest);
