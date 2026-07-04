@@ -34,4 +34,4 @@ CI excludes the `Integration` category since it has no secret configured.
 
 ## Status
 
-Early, built for internal use, not yet published to NuGet.
+Early, built for internal use. Published to NuGet as [Ae.Mistral](https://www.nuget.org/packages/Ae.Mistral).

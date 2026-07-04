@@ -13,6 +13,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/alanedwardes/Ae.Mistral</PackageProjectUrl>
 		<PackageTags>Mistral;AI;Chat;LLM;Microsoft.Extensions.AI;IChatClient</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,6 +23,10 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Ae.Mistral.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="../../README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>
