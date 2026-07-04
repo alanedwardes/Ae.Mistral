@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text;
 using Ae.Mistral.Models;
 using Xunit;
 
@@ -122,5 +124,77 @@ public class MistralClientTests
         Assert.Equal("mistralai", model.OwnedBy);
         Assert.True(model.Capabilities!.CompletionChat);
         Assert.True(model.Capabilities!.FunctionCalling);
+    }
+
+    [Fact]
+    public async Task CreateChatCompletionAsync_RetriesOnTooManyRequestsThenSucceeds()
+    {
+        var attempts = 0;
+        var handler = new FakeHttpMessageHandler((_, _) =>
+        {
+            attempts++;
+            if (attempts < 3)
+            {
+                return new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+                {
+                    Headers = { RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.Zero) },
+                    Content = new StringContent("rate limited", Encoding.UTF8, "text/plain"),
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"id\":\"abc\",\"model\":\"m\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}",
+                    Encoding.UTF8,
+                    "application/json"),
+            };
+        });
+        using var httpClient = handler.ToHttpClient();
+        using var client = new MistralClient("test-key", httpClient);
+
+        var response = await client.CreateChatCompletionAsync(SampleRequest());
+
+        Assert.Equal(3, attempts);
+        Assert.Equal("ok", response.Choices[0].Message.Content!.Value.Text);
+    }
+
+    [Fact]
+    public async Task CreateChatCompletionAsync_ThrowsAfterExhaustingRetries()
+    {
+        var attempts = 0;
+        var handler = new FakeHttpMessageHandler((_, _) =>
+        {
+            attempts++;
+            return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+            {
+                Headers = { RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.Zero) },
+                Content = new StringContent("unavailable", Encoding.UTF8, "text/plain"),
+            };
+        });
+        using var httpClient = handler.ToHttpClient();
+        using var client = new MistralClient("test-key", httpClient, maxRetries: 2);
+
+        await Assert.ThrowsAsync<MistralApiException>(() => client.CreateChatCompletionAsync(SampleRequest()));
+        Assert.Equal(3, attempts);
+    }
+
+    [Fact]
+    public async Task CreateChatCompletionAsync_DoesNotRetryWhenMaxRetriesIsZero()
+    {
+        var attempts = 0;
+        var handler = new FakeHttpMessageHandler((_, _) =>
+        {
+            attempts++;
+            return new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+            {
+                Content = new StringContent("rate limited", Encoding.UTF8, "text/plain"),
+            };
+        });
+        using var httpClient = handler.ToHttpClient();
+        using var client = new MistralClient("test-key", httpClient, maxRetries: 0);
+
+        await Assert.ThrowsAsync<MistralApiException>(() => client.CreateChatCompletionAsync(SampleRequest()));
+        Assert.Equal(1, attempts);
     }
 }
