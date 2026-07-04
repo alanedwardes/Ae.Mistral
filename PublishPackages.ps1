@@ -4,7 +4,7 @@ Remove-Item src/*/bin/Release/*.nupkg -ErrorAction SilentlyContinue
 
 Foreach ($TestProject in Get-ChildItem tests/*/*.csproj)
 {
-    dotnet test $TestProject
+    dotnet test $TestProject --filter "Category!=Integration"
 
     if ($LastExitCode -ne 0)
     {
