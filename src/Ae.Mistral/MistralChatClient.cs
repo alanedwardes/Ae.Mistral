@@ -8,7 +8,9 @@ namespace Ae.Mistral;
 
 public sealed class MistralChatClient(IMistralClient client, string defaultModelId) : IChatClient
 {
-    public void Dispose() => client.Dispose();
+    public void Dispose()
+    {
+    }
 
     public object? GetService(Type serviceType, object? serviceKey) =>
         serviceKey is not null ? null :
