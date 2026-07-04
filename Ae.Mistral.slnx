@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/ChatSample/ChatSample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Ae.Mistral/Ae.Mistral.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ae.Mistral.Tests/Ae.Mistral.Tests.csproj" />
+  </Folder>
+</Solution>
