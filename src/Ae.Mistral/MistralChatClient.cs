@@ -116,7 +116,7 @@ public sealed class MistralChatClient(MistralClient client, string defaultModelI
 
         foreach (var message in messages)
         {
-            requestMessages.Add(ToMistralMessage(message));
+            requestMessages.AddRange(ToMistralMessages(message));
         }
 
         var rawRequest = options?.RawRepresentationFactory?.Invoke(this) as ChatCompletionRequest;
@@ -181,21 +181,37 @@ public sealed class MistralChatClient(MistralClient client, string defaultModelI
         return request;
     }
 
+    private static IEnumerable<ChatCompletionRequestMessage> ToMistralMessages(ChatMessage message)
+    {
+        if (message.Role == ChatRole.Tool)
+        {
+            var functionResults = message.Contents.OfType<FunctionResultContent>().ToList();
+            if (functionResults.Count == 0)
+            {
+                yield return new ToolMessage { Content = ToResultString(null), ToolCallId = null };
+                yield break;
+            }
+
+            foreach (var functionResult in functionResults)
+            {
+                yield return new ToolMessage
+                {
+                    Content = ToResultString(functionResult),
+                    ToolCallId = functionResult.CallId,
+                };
+            }
+
+            yield break;
+        }
+
+        yield return ToMistralMessage(message);
+    }
+
     private static ChatCompletionRequestMessage ToMistralMessage(ChatMessage message)
     {
         if (message.Role == ChatRole.System)
         {
             return new SystemMessage { Content = string.Concat(message.Contents.OfType<TextContent>().Select(tc => tc.Text)) };
-        }
-
-        if (message.Role == ChatRole.Tool)
-        {
-            var functionResult = message.Contents.OfType<FunctionResultContent>().FirstOrDefault();
-            return new ToolMessage
-            {
-                Content = ToResultString(functionResult),
-                ToolCallId = functionResult?.CallId,
-            };
         }
 
         if (message.Role == ChatRole.Assistant)

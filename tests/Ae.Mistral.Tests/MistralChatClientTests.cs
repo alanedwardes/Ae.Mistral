@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ae.Mistral.Models;
 using Microsoft.Extensions.AI;
 using Xunit;
@@ -104,6 +105,44 @@ public class MistralChatClientTests
         Assert.Contains("\"role\":\"assistant\"", handler.LastRequestBody);
         Assert.Contains("\"role\":\"tool\"", handler.LastRequestBody);
         Assert.Contains("\"tool_call_id\":\"call_1\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_SplitsMultipleFunctionResultsInOneToolMessageIntoSeparateToolMessages()
+    {
+        var handler = FakeHttpMessageHandler.WithJsonResponse(
+            "{\"id\":\"abc\",\"model\":\"m\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Done.\"},\"finish_reason\":\"stop\"}]}");
+        using var httpClient = handler.ToHttpClient();
+        IChatClient client = new MistralChatClient(new MistralClient("test-key", httpClient), "mistral-small-latest");
+
+        var history = new List<ChatMessage>
+        {
+            new(ChatRole.User, "weather in paris and london?"),
+            new(ChatRole.Assistant,
+            [
+                new FunctionCallContent("call_1", "get_weather", new Dictionary<string, object?> { ["city"] = "Paris" }),
+                new FunctionCallContent("call_2", "get_weather", new Dictionary<string, object?> { ["city"] = "London" }),
+            ]),
+            new(ChatRole.Tool,
+            [
+                new FunctionResultContent("call_1", "Sunny, 21C"),
+                new FunctionResultContent("call_2", "Rainy, 15C"),
+            ]),
+        };
+
+        await client.GetResponseAsync(history);
+
+        using var document = JsonDocument.Parse(handler.LastRequestBody!);
+        var toolMessages = document.RootElement.GetProperty("messages")
+            .EnumerateArray()
+            .Where(m => m.GetProperty("role").GetString() == "tool")
+            .ToList();
+
+        Assert.Equal(2, toolMessages.Count);
+        Assert.Equal("call_1", toolMessages[0].GetProperty("tool_call_id").GetString());
+        Assert.Equal("Sunny, 21C", toolMessages[0].GetProperty("content").GetString());
+        Assert.Equal("call_2", toolMessages[1].GetProperty("tool_call_id").GetString());
+        Assert.Equal("Rainy, 15C", toolMessages[1].GetProperty("content").GetString());
     }
 
     [Fact]
