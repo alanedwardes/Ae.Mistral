@@ -8,7 +8,7 @@ using Ae.Mistral.Models;
 
 namespace Ae.Mistral;
 
-public sealed class MistralClient : IDisposable
+public sealed class MistralClient : IMistralClient
 {
     private static readonly Uri DefaultBaseUri = new("https://api.mistral.ai/v1/");
 

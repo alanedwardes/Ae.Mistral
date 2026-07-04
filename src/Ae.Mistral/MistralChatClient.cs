@@ -6,7 +6,7 @@ using Microsoft.Extensions.AI;
 
 namespace Ae.Mistral;
 
-public sealed class MistralChatClient(MistralClient client, string defaultModelId) : IChatClient
+public sealed class MistralChatClient(IMistralClient client, string defaultModelId) : IChatClient
 {
     public void Dispose() => client.Dispose();
 
