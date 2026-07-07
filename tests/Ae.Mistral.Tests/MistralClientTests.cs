@@ -59,6 +59,26 @@ public class MistralClientTests
     }
 
     [Fact]
+    public async Task CreateChatCompletionStreamAsync_ParsesArrayDeltaContentAsConcatenatedText()
+    {
+        const string sse =
+            "data: {\"id\":\"abc\",\"model\":\"m\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"},{\"type\":\"text\",\"text\":\" there\"}]},\"finish_reason\":null}]}\n\n" +
+            "data: [DONE]\n\n";
+
+        using var httpClient = FakeHttpMessageHandler.WithSseResponse(sse).ToHttpClient();
+        using var client = new MistralClient("test-key", httpClient);
+
+        var chunks = new List<ChatCompletionChunk>();
+        await foreach (var chunk in client.CreateChatCompletionStreamAsync(SampleRequest()))
+        {
+            chunks.Add(chunk);
+        }
+
+        Assert.Single(chunks);
+        Assert.Equal("Hello there", chunks[0].Choices[0].Delta.Content);
+    }
+
+    [Fact]
     public async Task CreateChatCompletionStreamAsync_ParsesToolCallDeltaWithStringArguments()
     {
         const string sse =
