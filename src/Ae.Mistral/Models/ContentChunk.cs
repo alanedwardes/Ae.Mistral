@@ -5,6 +5,7 @@ namespace Ae.Mistral.Models;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type", UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization)]
 [JsonDerivedType(typeof(TextChunk), "text")]
 [JsonDerivedType(typeof(ImageUrlChunk), "image_url")]
+[JsonDerivedType(typeof(ReferenceChunk), "reference")]
 public abstract class ContentChunk
 {
 }
@@ -18,6 +19,10 @@ public sealed class ImageUrlChunk : ContentChunk
 {
     [JsonPropertyName("image_url")]
     public required ImageUrl ImageUrl { get; init; }
+}
+
+public sealed class ReferenceChunk : ContentChunk
+{
 }
 
 public sealed class ImageUrl
